@@ -52,14 +52,9 @@ void LoopFive( int m, int n, int k, double *A, int ldA,
   //  double *Atilde = ( double * ) malloc( MC * KC * sizeof( double ) );
   //  double *Btilde = ( double * ) malloc( KC * NC * sizeof( double ) );
 
-  double *Btilde = ( double * ) _mm_malloc( KC * NC * sizeof( double ), 64 );  
+  double *Btilde = ( double * ) _mm_malloc( KC * NC * sizeof( double ), 64 );
+  double *Atilde = ( double * ) _mm_malloc( KC * NC * sizeof( double ), 64 );  
 
-  double *Atilde;
-  #pragma omp parallel
-  {
-    if ( omp_get_thread_num() == 0 )
-      Atilde = (double *)_mm_malloc( MC * NC * sizeof( double ) * omp_get_num_threads(), 64 );
-  }
   
   for ( int j=0; j<n; j+=NC ) {
     int jb = min( NC, n-j );    /* Last loop may not involve a full block */
@@ -83,11 +78,10 @@ void LoopFour( int m, int n, int k, double *A, int ldA, double *Atilde,
 void LoopThree( int m, int n, int k, double *A, int ldA, double *Atilde,
 		double *Btilde, double *C, int ldC )
 {
-  #pragma omp parallel for
   for ( int i=0; i<m; i+=MC ) {
     int ib = min( MC, m-i );    /* Last loop may not involve a full block */
-    PackBlockA_MCxKC( ib, k, &alpha( i, 0 ), ldA, &Atilde[MC * KC * sizeof( double ) * omp_get_thread_num()] );
-    LoopTwo( ib, n, k, &Atilde[MC * KC * sizeof( double ) * omp_get_thread_num()], Btilde, &gamma( i,0 ), ldC );
+    PackBlockA_MCxKC( ib, k, &alpha( i, 0 ), ldA, Atilde );
+    LoopTwo( ib, n, k, Atilde, Btilde, &gamma( i,0 ), ldC );
   }
 }
 
